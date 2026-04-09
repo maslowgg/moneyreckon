@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代理導師薪資與鐘點費計算系統</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自訂一些簡單的過渡動畫 */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-200">
+
+    <!-- 導覽列 -->
+    <nav class="fixed top-0 w-full bg-white shadow-sm z-50 transition-all duration-300">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center">
+                    <span class="font-bold text-xl text-blue-600">代課費用試算</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#daily-salary" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">日薪計算</a>
+                    <a href="#hourly-salary" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">鐘點費計算</a>
+                </div>
+                <!-- 手機版選單提示 -->
+                <div class="md:hidden flex items-center text-sm text-gray-500">
+                    向下捲動瀏覽
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容區 -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12 space-y-12">
+
+        <!-- Section 1: 日薪計算 -->
+        <section id="daily-salary" class="scroll-mt-24">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
+                <div class="mb-6 border-b border-slate-100 pb-4">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">📝 代理導師日薪計算</h2>
+                    <p class="text-sm text-red-500 font-medium">※ 請假未滿一日不支給導師費，僅支給鐘點費</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- 輸入區 -->
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">教師證狀態 (篩選器)</label>
+                            <select id="certStatus" class="w-full rounded-lg border-slate-300 border p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow bg-white">
+                                <option value="noCert">沒有教師證</option>
+                                <option value="hasCert">有教師證</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">學歷 / 資格</label>
+                            <select id="eduLevel" class="w-full rounded-lg border-slate-300 border p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow bg-white">
+                                <!-- 由 JS 動態產生 -->
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">當月天數</label>
+                            <select id="monthDays" class="w-full rounded-lg border-slate-300 border p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow bg-white">
+                                <option value="28">28天</option>
+                                <option value="29">29天</option>
+                                <option value="30">30天</option>
+                                <option value="31" selected>31天</option>
+                            </select>
+                        </div>
+
+                        <button onclick="calculateDailySalary()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-sm active:scale-95">
+                            計算日薪
+                        </button>
+                    </div>
+
+                    <!-- 輸出區 -->
+                    <div class="bg-slate-50 rounded-xl p-6 flex flex-col justify-center border border-slate-200 fade-in" id="dailyResultBox">
+                        <div class="text-center">
+                            <p class="text-sm text-slate-500 mb-2">試算結果 <span class="text-xs text-blue-500 font-medium">(含導師費)</span></p>
+                            <p class="text-4xl font-extrabold text-blue-600 mb-4 tracking-tight"><span id="dailyTotal">0</span> <span class="text-lg text-slate-600 font-medium">元/日</span></p>
+                        </div>
+                        
+                        <div class="space-y-3 mt-4 text-sm text-slate-600 bg-white p-4 rounded-lg border border-slate-100">
+                            <div class="flex justify-between"><span>薪點：</span><span id="resPt" class="font-medium text-slate-800">-</span></div>
+                            <div class="flex justify-between"><span>導師費：</span><span id="resTutor" class="font-medium text-slate-800">0 元/日</span></div>
+                            <div class="flex justify-between text-xs text-slate-400 mt-2 pt-2 border-t border-slate-100">
+                                <span>計算公式：(月支俸額 + 學術研究費) ÷ 天數 + (導師費 ÷ 天數)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: 鐘點費計算 -->
+        <section id="hourly-salary" class="scroll-mt-24">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">⏱️ 鐘點費計算</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- 輸入區 -->
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">授課階段</label>
+                            <div class="w-full rounded-lg border border-slate-200 bg-slate-50 text-slate-700 p-3">
+                                國小 (405元/節)
+                                <input type="hidden" id="schoolLevel" value="405">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">總授課節數</label>
+                            <input type="number" id="totalPeriods" min="1" value="10" class="w-full rounded-lg border-slate-300 border p-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-shadow bg-white">
+                        </div>
+
+                        <button onclick="calculateHourlySalary()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-sm active:scale-95">
+                            計算鐘點費
+                        </button>
+                    </div>
+
+                    <!-- 輸出區 -->
+                    <div class="bg-slate-50 rounded-xl p-6 flex flex-col justify-center border border-slate-200 fade-in" id="hourlyResultBox">
+                        <div class="text-center">
+                            <p class="text-sm text-slate-500 mb-2">預估總鐘點費</p>
+                            <p class="text-4xl font-extrabold text-emerald-600 mb-4 tracking-tight"><span id="hourlyTotal">0</span> <span class="text-lg text-slate-600 font-medium">元</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="bg-white border-t border-slate-200 py-8 mt-8">
+        <div class="max-w-6xl mx-auto px-4 text-center text-slate-500 text-sm">
+            &copy; 2026 代課費用試算。依據公立學校教職員薪級表及相關規定計算，實際薪資依各縣市教育局處核定為準。
+        </div>
+    </footer>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // --- 1. 資料結構定義 (依據上傳之 CSV 建立) ---
+        const salaryData = {
+            noCert: { // 沒有教師證
+                noCredits: { pt: 170, base: 23520, research: 18464, name: '無修畢教育學分' },
+                hasCredits: { pt: 180, base: 24290, research: 18464, name: '有修畢教育學分' },
+                master: { pt: 245, base: 29270, research: 21248, name: '碩士' },
+                phd: { pt: 330, base: 35010, research: 21248, name: '博士' }
+            },
+            hasCert: { // 有教師證
+                bachelor: { pt: 190, base: 25050, research: 23080, name: '大學/師院' },
+                master: { pt: 245, base: 29270, research: 26560, name: '碩士' },
+                phd: { pt: 330, base: 35010, research: 26560, name: '博士' }
+            }
+        };
+
+        const tutorFeeMonthly = 4000; // 導師費 4000 元/月
+
+        // DOM 元素快取
+        const certStatusSelect = document.getElementById('certStatus');
+        const eduLevelSelect = document.getElementById('eduLevel');
+
+        // --- 2. 介面互動與初始化 ---
+        function initApp() {
+            // 綁定連動選單事件
+            certStatusSelect.addEventListener('change', populateEduLevels);
+            // 初始載入選單
+            populateEduLevels();
+            // 初始計算一次
+            calculateDailySalary();
+            calculateHourlySalary();
+        }
+
+        // 動態填充學歷選單
+        function populateEduLevels() {
+            const status = certStatusSelect.value;
+            const optionsData = salaryData[status];
+            
+            eduLevelSelect.innerHTML = ''; // 清空選項
+            
+            for (const key in optionsData) {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = optionsData[key].name;
+                eduLevelSelect.appendChild(opt);
+            }
+        }
+
+        // 格式化金錢 (加上千分位)
+        function formatMoney(num) {
+            return Number(num).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+        }
+
+        // --- 3. 計算邏輯 ---
+
+        // 計算日薪
+        function calculateDailySalary() {
+            const status = certStatusSelect.value;
+            const edu = eduLevelSelect.value;
+            const days = parseInt(document.getElementById('monthDays').value);
+
+            if(!status || !edu) return;
+
+            const data = salaryData[status][edu];
+            const base = data.base;
+            const research = data.research;
+            
+            // 公式: (月支俸額 + 學術研究費) / 天數 + (導師費 / 天數)
+            let dailyPay = (base + research + tutorFeeMonthly) / days;
+
+            // 更新畫面
+            document.getElementById('resPt').textContent = data.pt;
+            
+            // 更新導師費顯示
+            const tutorDaily = tutorFeeMonthly / days;
+            document.getElementById('resTutor').textContent = `${formatMoney(Math.round(tutorDaily))} 元/日`;
+            document.getElementById('resTutor').classList.add('text-blue-600');
+            
+            // 觸發動畫並顯示結果
+            const resultBox = document.getElementById('dailyResultBox');
+            resultBox.classList.remove('fade-in');
+            void resultBox.offsetWidth; // 觸發重繪 (Reflow)
+            resultBox.classList.add('fade-in');
+            
+            document.getElementById('dailyTotal').textContent = formatMoney(Math.round(dailyPay));
+        }
+
+        // 計算鐘點費
+        function calculateHourlySalary() {
+            const rate = parseInt(document.getElementById('schoolLevel').value);
+            const totalPeriods = parseInt(document.getElementById('totalPeriods').value) || 0;
+
+            const total = rate * totalPeriods;
+
+            // 觸發動畫
+            const resultBox = document.getElementById('hourlyResultBox');
+            resultBox.classList.remove('fade-in');
+            void resultBox.offsetWidth;
+            resultBox.classList.add('fade-in');
+
+            document.getElementById('hourlyTotal').textContent = formatMoney(total);
+        }
+
+        // 啟動應用程式
+        window.onload = initApp;
+    </script>
+</body>
+</html>
